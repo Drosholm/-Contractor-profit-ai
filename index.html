@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Contractor Profit AI Advisor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+    h2 {
+      text-align: center;
+    }
+    input, button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #111;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    #result {
+      margin-top: 20px;
+      white-space: pre-wrap;
+      background: #f4f4f4;
+      padding: 15px;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>AI Profit Advisor</h2>
+
+  <label>Current Hourly Rate ($)</label>
+  <input type="number" id="currentRate">
+
+  <label>Required Hourly Rate ($)</label>
+  <input type="number" id="requiredRate">
+
+  <label>Billable Hours Per Year</label>
+  <input type="number" id="hours">
+
+  <button onclick="analyze()">Analyze My Business</button>
+
+  <div id="result"></div>
+
+  <script>
+    async function analyze() {
+      const currentRate = document.getElementById('currentRate').value;
+      const requiredRate = document.getElementById('requiredRate').value;
+      const hours = document.getElementById('hours').value;
+
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentRate, requiredRate, hours })
+      });
+
+      const data = await response.json();
+      document.getElementById('result').innerText = data.result;
+    }
+  </script>
+
+</body>
+</html>
