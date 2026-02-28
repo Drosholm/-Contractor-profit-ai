@@ -81,7 +81,7 @@ async function analyze() {
     document.getElementById("result").innerText = data.result || "No response from AI.";
 
   } catch (error) {
-    document.getElementById("result").innerText = "Error connecting to server.";
+    document.getElementById("result").innerHTML = data.result || "No response from AI.";
   }
 }
 </script>
