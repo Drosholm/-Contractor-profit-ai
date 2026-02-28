@@ -10,7 +10,17 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { currentRate, requiredRate, hours, currency } = req.body;
+
+    const {
+      currency,
+      currentRate,
+      requiredRate,
+      hours,
+      materialPercent,
+      overhead,
+      employees,
+      projectSize
+    } = req.body;
 
     const symbolMap = {
       USD: "$",
@@ -21,37 +31,98 @@ export default async function handler(req, res) {
 
     const symbol = symbolMap[currency] || "";
 
+    // Convert to numbers safely
+    const current = Number(currentRate);
+    const target = Number(requiredRate);
+    const billableHours = Number(hours);
+    const materialPct = Number(materialPercent) / 100;
+    const yearlyOverhead = Number(overhead);
+    const avgProject = Number(projectSize);
+    const staff = Number(employees);
+
+    // === CALCULATIONS ===
+
+    const currentRevenue = current * billableHours;
+    const targetRevenue = target * billableHours;
+
+    const materialCost = currentRevenue * materialPct;
+    const grossProfit = currentRevenue - materialCost;
+    const netProfit = grossProfit - yearlyOverhead;
+
+    const profitMargin = currentRevenue > 0
+      ? ((netProfit / currentRevenue) * 100).toFixed(1)
+      : 0;
+
+    const incomeGap = targetRevenue - currentRevenue;
+
+    const breakEvenRevenue = yearlyOverhead / (1 - materialPct);
+
+    const projectsNeeded = avgProject > 0
+      ? Math.ceil(targetRevenue / avgProject)
+      : 0;
+
+    // === AI ADVICE PROMPT ===
+
     const prompt = `
-You are a business profit advisor.
+You are a professional business advisor for contractors.
 
-Use ${symbol} as the currency symbol in ALL calculations and text.
+Business data:
 
-Current hourly rate: ${symbol}${currentRate}
-Required hourly rate: ${symbol}${requiredRate}
-Billable hours per year: ${hours}
+Current revenue: ${symbol}${currentRevenue}
+Target revenue: ${symbol}${targetRevenue}
+Material cost: ${symbol}${materialCost}
+Annual overhead: ${symbol}${yearlyOverhead}
+Net profit: ${symbol}${netProfit}
+Profit margin: ${profitMargin}%
+Employees: ${staff}
+Average project value: ${symbol}${avgProject}
 
-Provide:
+Provide short, sharp strategic advice on:
 
-1. Current annual income
-2. Target annual income
-3. Income gap
-4. Short improvement advice
+1. Pricing
+2. Cost control
+3. Revenue growth
+4. Operational efficiency
 
-Use clean HTML formatting (h3, p, strong). 
-DO NOT use markdown.
-DO NOT use LaTeX.
-DO NOT use $ unless it matches the currency symbol provided.
+Use clean HTML formatting (h3, p, ul, li).
+Keep it professional and direct.
+Do not repeat the numbers.
 `;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      messages: [
-        { role: "user", content: prompt }
-      ],
+      messages: [{ role: "user", content: prompt }],
       temperature: 0.7,
     });
 
-    const result = completion.choices[0].message.content;
+    const aiAdvice = completion.choices[0].message.content;
+
+    // === FINAL HTML OUTPUT ===
+
+    const result = `
+<h2>Business Profit Analysis</h2>
+
+<h3>Revenue Overview</h3>
+<p><strong>Current Revenue:</strong> ${symbol}${currentRevenue.toLocaleString()}</p>
+<p><strong>Target Revenue:</strong> ${symbol}${targetRevenue.toLocaleString()}</p>
+<p><strong>Income Gap:</strong> ${symbol}${incomeGap.toLocaleString()}</p>
+
+<h3>Cost Structure</h3>
+<p><strong>Material Cost (${materialPercent}%):</strong> ${symbol}${materialCost.toLocaleString()}</p>
+<p><strong>Annual Overhead:</strong> ${symbol}${yearlyOverhead.toLocaleString()}</p>
+
+<h3>Profitability</h3>
+<p><strong>Net Profit:</strong> ${symbol}${netProfit.toLocaleString()}</p>
+<p><strong>Profit Margin:</strong> ${profitMargin}%</p>
+<p><strong>Break-even Revenue:</strong> ${symbol}${Math.round(breakEvenRevenue).toLocaleString()}</p>
+
+<h3>Operational Metrics</h3>
+<p><strong>Projects Needed to Hit Target:</strong> ${projectsNeeded}</p>
+
+<hr>
+
+${aiAdvice}
+`;
 
     res.status(200).json({ result });
 
