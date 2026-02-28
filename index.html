@@ -64,7 +64,7 @@ async function analyze() {
   document.getElementById("result").innerText = "Analyzing...";
 
   try {
-    const response = await fetch("/api/analyze", {  // ← FIXED (Z not S)
+    const response = await fetch("/api/analyse", {  // ← FIXED (Z not S)
       method: "POST",
       headers: {
         "Content-Type": "application/json"
