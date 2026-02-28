@@ -1,167 +1,69 @@
-import PDFDocument from "pdfkit";
+const PDFDocument = require("pdfkit");
 
-export default async function handler(req, res) {
+export default function handler(req, res) {
 
   if (req.method !== "POST") {
     return res.status(405).end();
   }
 
-  const {
-    currency,
-    currentRevenue,
-    targetRevenue,
-    incomeGap,
-    materialCost,
-    overhead,
-    netProfit,
-    profitMargin,
-    breakEvenRevenue,
-    projectsNeeded
-  } = req.body;
+  try {
 
-  const doc = new PDFDocument({ margin: 0 });
-  res.setHeader("Content-Type", "application/pdf");
-  res.setHeader("Content-Disposition", "attachment; filename=Contractor-Profit-Report.pdf");
-  doc.pipe(res);
+    const body = req.body;
 
-  const pageWidth = doc.page.width;
+    const currency = body.currency;
 
-  /* ======================
-     PAGE 1 – EXECUTIVE
-  =======================*/
+    const currentRevenue = Number(body.currentRevenue) || 0;
+    const targetRevenue = Number(body.targetRevenue) || 0;
+    const incomeGap = Number(body.incomeGap) || 0;
+    const materialCost = Number(body.materialCost) || 0;
+    const overhead = Number(body.overhead) || 0;
+    const netProfit = Number(body.netProfit) || 0;
+    const profitMargin = Number(body.profitMargin) || 0;
+    const breakEvenRevenue = Number(body.breakEvenRevenue) || 0;
+    const projectsNeeded = Number(body.projectsNeeded) || 0;
 
-  doc.rect(0, 0, pageWidth, 120).fill("#111111");
+    const doc = new PDFDocument();
 
-  doc.fillColor("white")
-     .fontSize(26)
-     .text("CONTRACTOR PROFIT REPORT", 0, 50, { align: "center" });
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=Business-Profit-Analysis.pdf"
+    );
 
-  doc.fillColor("#111")
-     .fontSize(16)
-     .text("Executive Summary", 60, 180);
+    doc.pipe(res);
 
-  doc.fontSize(13)
-     .text(
-       `Your business generates ${currency} ${currentRevenue.toLocaleString()} annually with a ${profitMargin}% margin.`,
-       60,
-       220,
-       { width: 480 }
-     );
+    doc.fontSize(20).text("CONTRACTOR PROFIT REPORT", { align: "center" });
+    doc.moveDown();
 
-  doc.text(
-       `Target revenue is ${currency} ${targetRevenue.toLocaleString()} — gap: ${currency} ${incomeGap.toLocaleString()}.`,
-       { width: 480 }
-     );
+    doc.fontSize(14).text("Executive Summary");
+    doc.moveDown();
 
-  doc.addPage();
+    doc.fontSize(12).text(
+      `Revenue: ${currency} ${currentRevenue.toLocaleString()}`
+    );
+    doc.text(
+      `Target: ${currency} ${targetRevenue.toLocaleString()}`
+    );
+    doc.text(
+      `Income Gap: ${currency} ${incomeGap.toLocaleString()}`
+    );
 
-  /* ======================
-     PAGE 2 – VISUAL DASHBOARD
-  =======================*/
+    doc.addPage();
 
-  doc.fontSize(22)
-     .fillColor("#111")
-     .text("Financial Intelligence Dashboard", 60, 60);
+    doc.fontSize(16).text("Financial Dashboard");
+    doc.moveDown();
 
-  /* === Revenue vs Target Bar === */
+    doc.text(`Net Profit: ${currency} ${netProfit.toLocaleString()}`);
+    doc.text(`Profit Margin: ${profitMargin}%`);
+    doc.text(`Break-even Revenue: ${currency} ${breakEvenRevenue.toLocaleString()}`);
+    doc.text(`Projects Needed: ${projectsNeeded}`);
 
-  doc.fontSize(14)
-     .text("Revenue vs Target", 60, 120);
+    doc.end();
 
-  const maxWidth = 400;
-  const revenueRatio = targetRevenue > 0 ? currentRevenue / targetRevenue : 0;
-  const revenueWidth = maxWidth * revenueRatio;
+  } catch (error) {
 
-  doc.rect(60, 150, maxWidth, 20).fill("#eaeaea");
-  doc.rect(60, 150, revenueWidth, 20).fill("#27ae60");
+    console.error("PDF ERROR:", error);
+    res.status(500).json({ error: "PDF generation failed" });
 
-  doc.fontSize(11)
-     .fillColor("#000")
-     .text(`${currency} ${currentRevenue.toLocaleString()} / ${currency} ${targetRevenue.toLocaleString()}`,
-       60,
-       175);
-
-  /* === Cost Breakdown === */
-
-  doc.fontSize(14)
-     .text("Cost Structure", 60, 220);
-
-  const totalCosts = materialCost + overhead;
-  const costRatio = currentRevenue > 0 ? totalCosts / currentRevenue : 0;
-  const costWidth = maxWidth * costRatio;
-
-  doc.rect(60, 250, maxWidth, 20).fill("#eaeaea");
-  doc.rect(60, 250, costWidth, 20).fill("#c0392b");
-
-  doc.fontSize(11)
-     .text(`Total Costs: ${currency} ${totalCosts.toLocaleString()}`, 60, 275);
-
-  /* === Profit Margin Bar === */
-
-  doc.fontSize(14)
-     .text("Profit Margin Strength", 60, 320);
-
-  const marginWidth = maxWidth * (profitMargin / 100);
-
-  let marginColor = "#27ae60";
-  if (profitMargin < 20) marginColor = "#f39c12";
-  if (profitMargin < 10) marginColor = "#c0392b";
-
-  doc.rect(60, 350, maxWidth, 20).fill("#eaeaea");
-  doc.rect(60, 350, marginWidth, 20).fill(marginColor);
-
-  doc.fontSize(11)
-     .text(`${profitMargin}%`, 60, 375);
-
-  /* === Gap Analysis === */
-
-  doc.fontSize(14)
-     .text("Gap Impact Analysis", 60, 420);
-
-  const gapPercent = targetRevenue > 0 ? ((incomeGap / targetRevenue) * 100).toFixed(1) : 0;
-
-  doc.fontSize(12)
-     .text(`Revenue Gap: ${gapPercent}% of target`, 60, 450)
-     .text(`Projects Needed: ${projectsNeeded}`, 60, 470);
-
-  doc.addPage();
-
-  /* ======================
-     PAGE 3 – STRATEGIC PLAN
-  =======================*/
-
-  doc.fontSize(22)
-     .fillColor("#111")
-     .text("Strategic Action Plan", 60, 60);
-
-  doc.fontSize(14)
-     .text("1. Margin Optimization", 60, 120);
-
-  doc.fontSize(12)
-     .text("- Increase pricing strategically", 60, 150)
-     .text("- Negotiate supplier contracts", 60, 170)
-     .text("- Reduce material waste", 60, 190);
-
-  doc.fontSize(14)
-     .text("2. Revenue Growth", 60, 230);
-
-  doc.fontSize(12)
-     .text("- Increase average project size", 60, 260)
-     .text("- Improve quote conversion rate", 60, 280)
-     .text("- Upsell premium services", 60, 300);
-
-  doc.fontSize(14)
-     .text("3. Operational Efficiency", 60, 340);
-
-  doc.fontSize(12)
-     .text("- Reduce overhead leakage", 60, 370)
-     .text("- Monitor break-even monthly", 60, 390);
-
-  doc.fontSize(10)
-     .fillColor("gray")
-     .text("Generated by Contractor Profit AI",
-       0,
-       doc.page.height - 60,
-       { align: "center" });
-
-  doc.end()
+  }
+}
