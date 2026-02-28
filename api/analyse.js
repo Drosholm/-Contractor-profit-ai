@@ -31,14 +31,14 @@ export default async function handler(req, res) {
 
     const symbol = symbolMap[currency] || "";
 
-    // Convert to numbers safely
-    const current = Number(currentRate);
-    const target = Number(requiredRate);
-    const billableHours = Number(hours);
-    const materialPct = Number(materialPercent) / 100;
-    const yearlyOverhead = Number(overhead);
-    const avgProject = Number(projectSize);
-    const staff = Number(employees);
+    // Convert safely to numbers
+    const current = Number(currentRate) || 0;
+    const target = Number(requiredRate) || 0;
+    const billableHours = Number(hours) || 0;
+    const materialPct = (Number(materialPercent) || 0) / 100;
+    const yearlyOverhead = Number(overhead) || 0;
+    const avgProject = Number(projectSize) || 0;
+    const staff = Number(employees) || 0;
 
     // === CALCULATIONS ===
 
@@ -49,19 +49,24 @@ export default async function handler(req, res) {
     const grossProfit = currentRevenue - materialCost;
     const netProfit = grossProfit - yearlyOverhead;
 
-    const profitMargin = currentRevenue > 0
-      ? ((netProfit / currentRevenue) * 100).toFixed(1)
-      : 0;
+    const profitMargin =
+      currentRevenue > 0
+        ? ((netProfit / currentRevenue) * 100).toFixed(1)
+        : 0;
 
     const incomeGap = targetRevenue - currentRevenue;
 
-    const breakEvenRevenue = yearlyOverhead / (1 - materialPct);
+    const breakEvenRevenue =
+      materialPct < 1
+        ? yearlyOverhead / (1 - materialPct)
+        : 0;
 
-    const projectsNeeded = avgProject > 0
-      ? Math.ceil(targetRevenue / avgProject)
-      : 0;
+    const projectsNeeded =
+      avgProject > 0
+        ? Math.ceil(targetRevenue / avgProject)
+        : 0;
 
-    // === AI ADVICE PROMPT ===
+    // === AI ADVICE PROMPT (FIXED - NO MARKDOWN) ===
 
     const prompt = `
 You are a professional business advisor for contractors.
@@ -84,9 +89,12 @@ Provide short, sharp strategic advice on:
 3. Revenue growth
 4. Operational efficiency
 
-Use clean HTML formatting (h3, p, ul, li).
-Keep it professional and direct.
-Do not repeat the numbers.
+Use clean HTML formatting with <h3>, <p>, <ul>, <li>.
+Do NOT use markdown.
+Do NOT use code blocks.
+Do NOT include \`\`\` or \`\`\`html.
+Return pure HTML only.
+Keep it executive and professional.
 `;
 
     const completion = await openai.chat.completions.create({
