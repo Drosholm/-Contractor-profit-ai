@@ -10,7 +10,7 @@
       margin: 40px auto;
       padding: 20px;
     }
-    input, button {
+    input, select, button {
       width: 100%;
       padding: 12px;
       margin-top: 10px;
@@ -32,7 +32,8 @@
 <body>
 
 <h2>AI Profit Advisor</h2>
-  <label>Currency</label>
+
+<label>Currency</label>
 <select id="currency">
   <option value="USD">USD</option>
   <option value="EUR">EUR</option>
@@ -40,10 +41,10 @@
   <option value="AUD">AUD</option>
 </select>
 
-<label>Current Hourly Rate </label>
+<label>Current Hourly Rate</label>
 <input id="currentRate" type="number">
 
-<label>Required Hourly Rate </label>
+<label>Required Hourly Rate</label>
 <input id="requiredRate" type="number">
 
 <label>Billable Hours Per Year</label>
@@ -55,6 +56,7 @@
 
 <script>
 async function analyze() {
+  const currency = document.getElementById("currency").value;
   const currentRate = document.getElementById("currentRate").value;
   const requiredRate = document.getElementById("requiredRate").value;
   const hours = document.getElementById("hours").value;
@@ -62,12 +64,13 @@ async function analyze() {
   document.getElementById("result").innerText = "Analyzing...";
 
   try {
-    const response = await fetch("/api/analyse", {
+    const response = await fetch("/api/analyze", {  // ← FIXED (Z not S)
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
+        currency,
         currentRate,
         requiredRate,
         hours
@@ -75,8 +78,8 @@ async function analyze() {
     });
 
     const data = await response.json();
-
     document.getElementById("result").innerText = data.result || "No response from AI.";
+
   } catch (error) {
     document.getElementById("result").innerText = "Error connecting to server.";
   }
