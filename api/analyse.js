@@ -1,45 +1,62 @@
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
-    const { currentRate, requiredRate, hours } = req.body;
+    const { currentRate, requiredRate, hours, currency } = req.body;
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: "You are a professional business advisor helping contractors increase profit."
-          },
-          {
-            role: "user",
-            content: `
-Current hourly rate: ${currentRate}
-Required hourly rate: ${requiredRate}
+    const symbolMap = {
+      USD: "$",
+      EUR: "€",
+      GBP: "£",
+      AUD: "A$"
+    };
+
+    const symbol = symbolMap[currency] || "";
+
+    const prompt = `
+You are a business profit advisor.
+
+Use ${symbol} as the currency symbol in ALL calculations and text.
+
+Current hourly rate: ${symbol}${currentRate}
+Required hourly rate: ${symbol}${requiredRate}
 Billable hours per year: ${hours}
 
-Give a short and clear profit analysis and improvement advice.
-`
-          }
-        ]
-      })
+Provide:
+
+1. Current annual income
+2. Target annual income
+3. Income gap
+4. Short improvement advice
+
+Use clean HTML formatting (h3, p, strong). 
+DO NOT use markdown.
+DO NOT use LaTeX.
+DO NOT use $ unless it matches the currency symbol provided.
+`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "user", content: prompt }
+      ],
+      temperature: 0.7,
     });
 
-    const data = await response.json();
+    const result = completion.choices[0].message.content;
 
-    return res.status(200).json({
-      result: data.choices?.[0]?.message?.content || "No response from AI."
-    });
+    res.status(200).json({ result });
 
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: "Server error" });
   }
 }
