@@ -19,59 +19,16 @@ export default async function handler(req, res) {
     projectsNeeded
   } = req.body;
 
-  /* =====================
-     BUSINESS HEALTH SCORE
-  ====================== */
-
-  let score = 0;
-
-  if (profitMargin >= 30) score += 40;
-  else if (profitMargin >= 20) score += 30;
-  else if (profitMargin >= 10) score += 20;
-  else score += 10;
-
-  const gapPercent = targetRevenue > 0 ? (incomeGap / targetRevenue) * 100 : 0;
-
-  if (incomeGap === 0) score += 30;
-  else if (gapPercent < 10) score += 20;
-  else if (gapPercent < 25) score += 10;
-  else score += 5;
-
-  const materialRatio = currentRevenue > 0 ? (materialCost / currentRevenue) * 100 : 0;
-
-  if (materialRatio < 25) score += 30;
-  else if (materialRatio < 35) score += 20;
-  else score += 10;
-
-  let status = "Strong";
-  let scoreColor = "#27ae60";
-
-  if (score < 75) {
-    status = "Moderate";
-    scoreColor = "#f39c12";
-  }
-  if (score < 50) {
-    status = "At Risk";
-    scoreColor = "#c0392b";
-  }
-
-  /* =====================
-     PDF SETUP
-  ====================== */
-
   const doc = new PDFDocument({ margin: 0 });
   res.setHeader("Content-Type", "application/pdf");
-  res.setHeader(
-    "Content-Disposition",
-    "attachment; filename=Contractor-Profit-Report.pdf"
-  );
+  res.setHeader("Content-Disposition", "attachment; filename=Contractor-Profit-Report.pdf");
   doc.pipe(res);
 
   const pageWidth = doc.page.width;
 
-  /* =====================
+  /* ======================
      PAGE 1 – EXECUTIVE
-  ====================== */
+  =======================*/
 
   doc.rect(0, 0, pageWidth, 120).fill("#111111");
 
@@ -79,107 +36,126 @@ export default async function handler(req, res) {
      .fontSize(26)
      .text("CONTRACTOR PROFIT REPORT", 0, 50, { align: "center" });
 
-  doc.fillColor("#111111")
+  doc.fillColor("#111")
      .fontSize(16)
      .text("Executive Summary", 60, 180);
 
   doc.fontSize(13)
      .text(
-       `Your business currently generates ${currency} ${currentRevenue.toLocaleString()} in annual revenue with a profit margin of ${profitMargin}%.`,
+       `Your business generates ${currency} ${currentRevenue.toLocaleString()} annually with a ${profitMargin}% margin.`,
        60,
        220,
        { width: 480 }
      );
 
   doc.text(
-       `To reach ${currency} ${targetRevenue.toLocaleString()}, you must close a gap of ${currency} ${incomeGap.toLocaleString()}.`,
+       `Target revenue is ${currency} ${targetRevenue.toLocaleString()} — gap: ${currency} ${incomeGap.toLocaleString()}.`,
        { width: 480 }
      );
 
-  doc.roundedRect(60, 320, 480, 100, 8).fill("#f4f4f4");
+  doc.addPage();
 
-  doc.fillColor("#555")
-     .fontSize(12)
-     .text("BUSINESS HEALTH SCORE", 80, 340);
+  /* ======================
+     PAGE 2 – VISUAL DASHBOARD
+  =======================*/
 
-  doc.fillColor(scoreColor)
-     .fontSize(32)
-     .text(`${score} / 100`, 80, 360);
+  doc.fontSize(22)
+     .fillColor("#111")
+     .text("Financial Intelligence Dashboard", 60, 60);
+
+  /* === Revenue vs Target Bar === */
 
   doc.fontSize(14)
-     .text(status, 80, 395);
+     .text("Revenue vs Target", 60, 120);
+
+  const maxWidth = 400;
+  const revenueRatio = targetRevenue > 0 ? currentRevenue / targetRevenue : 0;
+  const revenueWidth = maxWidth * revenueRatio;
+
+  doc.rect(60, 150, maxWidth, 20).fill("#eaeaea");
+  doc.rect(60, 150, revenueWidth, 20).fill("#27ae60");
+
+  doc.fontSize(11)
+     .fillColor("#000")
+     .text(`${currency} ${currentRevenue.toLocaleString()} / ${currency} ${targetRevenue.toLocaleString()}`,
+       60,
+       175);
+
+  /* === Cost Breakdown === */
+
+  doc.fontSize(14)
+     .text("Cost Structure", 60, 220);
+
+  const totalCosts = materialCost + overhead;
+  const costRatio = currentRevenue > 0 ? totalCosts / currentRevenue : 0;
+  const costWidth = maxWidth * costRatio;
+
+  doc.rect(60, 250, maxWidth, 20).fill("#eaeaea");
+  doc.rect(60, 250, costWidth, 20).fill("#c0392b");
+
+  doc.fontSize(11)
+     .text(`Total Costs: ${currency} ${totalCosts.toLocaleString()}`, 60, 275);
+
+  /* === Profit Margin Bar === */
+
+  doc.fontSize(14)
+     .text("Profit Margin Strength", 60, 320);
+
+  const marginWidth = maxWidth * (profitMargin / 100);
+
+  let marginColor = "#27ae60";
+  if (profitMargin < 20) marginColor = "#f39c12";
+  if (profitMargin < 10) marginColor = "#c0392b";
+
+  doc.rect(60, 350, maxWidth, 20).fill("#eaeaea");
+  doc.rect(60, 350, marginWidth, 20).fill(marginColor);
+
+  doc.fontSize(11)
+     .text(`${profitMargin}%`, 60, 375);
+
+  /* === Gap Analysis === */
+
+  doc.fontSize(14)
+     .text("Gap Impact Analysis", 60, 420);
+
+  const gapPercent = targetRevenue > 0 ? ((incomeGap / targetRevenue) * 100).toFixed(1) : 0;
+
+  doc.fontSize(12)
+     .text(`Revenue Gap: ${gapPercent}% of target`, 60, 450)
+     .text(`Projects Needed: ${projectsNeeded}`, 60, 470);
 
   doc.addPage();
 
-  /* =====================
-     PAGE 2 – DASHBOARD
-  ====================== */
+  /* ======================
+     PAGE 3 – STRATEGIC PLAN
+  =======================*/
 
-  doc.fillColor("#111111")
-     .fontSize(22)
-     .text("Financial Dashboard", 60, 60);
-
-  const boxWidth = 160;
-  const boxHeight = 80;
-  const startX = 60;
-  const startY = 110;
-  const gap = 20;
-
-  function kpiBox(x, y, title, value, color) {
-    doc.roundedRect(x, y, boxWidth, boxHeight, 6).fill("#f7f7f7");
-    doc.fillColor("#777")
-       .fontSize(10)
-       .text(title, x + 15, y + 15);
-    doc.fillColor(color)
-       .fontSize(16)
-       .text(value, x + 15, y + 35);
-  }
-
-  const profitColor = netProfit >= 0 ? "#27ae60" : "#c0392b";
-  const marginColor = profitMargin >= 20 ? "#27ae60" : "#c0392b";
-
-  kpiBox(startX, startY, "Net Profit",
-    `${currency} ${netProfit.toLocaleString()}`, profitColor);
-
-  kpiBox(startX + boxWidth + gap, startY, "Profit Margin",
-    `${profitMargin}%`, marginColor);
-
-  kpiBox(startX + (boxWidth + gap) * 2, startY, "Break-even",
-    `${currency} ${breakEvenRevenue.toLocaleString()}`, "#000");
-
-  doc.addPage();
-
-  /* =====================
-     PAGE 3 – ACTION PLAN
-  ====================== */
-
-  doc.fillColor("#111111")
-     .fontSize(22)
+  doc.fontSize(22)
+     .fillColor("#111")
      .text("Strategic Action Plan", 60, 60);
 
   doc.fontSize(14)
-     .text("Priority 1 – Improve Profit Margin", 60, 120);
+     .text("1. Margin Optimization", 60, 120);
 
   doc.fontSize(12)
-     .text("- Increase hourly rate strategically (3–8%)", 60, 150)
-     .text("- Negotiate supplier discounts", 60, 170)
-     .text("- Reduce material waste on projects", 60, 190);
+     .text("- Increase pricing strategically", 60, 150)
+     .text("- Negotiate supplier contracts", 60, 170)
+     .text("- Reduce material waste", 60, 190);
 
   doc.fontSize(14)
-     .text("Priority 2 – Revenue Growth", 60, 230);
+     .text("2. Revenue Growth", 60, 230);
 
   doc.fontSize(12)
      .text("- Increase average project size", 60, 260)
-     .text("- Upsell premium services", 60, 280)
-     .text("- Improve conversion rate on quotes", 60, 300);
+     .text("- Improve quote conversion rate", 60, 280)
+     .text("- Upsell premium services", 60, 300);
 
   doc.fontSize(14)
-     .text("Priority 3 – Cost Optimization", 60, 340);
+     .text("3. Operational Efficiency", 60, 340);
 
   doc.fontSize(12)
-     .text("- Review overhead expenses", 60, 370)
-     .text("- Adjust pricing to protect margin", 60, 390)
-     .text("- Monitor break-even monthly", 60, 410);
+     .text("- Reduce overhead leakage", 60, 370)
+     .text("- Monitor break-even monthly", 60, 390);
 
   doc.fontSize(10)
      .fillColor("gray")
@@ -188,5 +164,4 @@ export default async function handler(req, res) {
        doc.page.height - 60,
        { align: "center" });
 
-  doc.end();
-}
+  doc.end()
