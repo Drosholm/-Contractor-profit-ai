@@ -6,7 +6,7 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      max-width: 600px;
+      max-width: 700px;
       margin: 40px auto;
       padding: 20px;
     }
@@ -22,10 +22,17 @@
       color: white;
       border: none;
       cursor: pointer;
+      margin-top: 20px;
+    }
+    h3 {
+      margin-top: 30px;
+    }
+    hr {
+      margin: 30px 0;
     }
     #result {
-      margin-top: 20px;
-      white-space: normal; /* vigtig */
+      margin-top: 30px;
+      white-space: normal;
     }
   </style>
 </head>
@@ -44,11 +51,27 @@
 <label>Current Hourly Rate</label>
 <input id="currentRate" type="number">
 
-<label>Required Hourly Rate</label>
+<label>Target Hourly Rate</label>
 <input id="requiredRate" type="number">
 
 <label>Billable Hours Per Year</label>
 <input id="hours" type="number">
+
+<hr>
+
+<h3>Business Details</h3>
+
+<label>Average Material Cost (% of revenue)</label>
+<input id="materialPercent" type="number" placeholder="e.g. 35">
+
+<label>Estimated Annual Overhead</label>
+<input id="overhead" type="number" placeholder="e.g. 45000">
+
+<label>Number of Employees (including yourself)</label>
+<input id="employees" type="number">
+
+<label>Average Project Size</label>
+<input id="projectSize" type="number" placeholder="e.g. 12000">
 
 <button onclick="analyse()">Analyze My Business</button>
 
@@ -56,14 +79,21 @@
 
 <script>
 async function analyse() {
+
   const currency = document.getElementById("currency").value;
   const currentRate = document.getElementById("currentRate").value;
   const requiredRate = document.getElementById("requiredRate").value;
   const hours = document.getElementById("hours").value;
 
-  document.getElementById("result").innerHTML = "Analyzing...";
+  const materialPercent = document.getElementById("materialPercent").value;
+  const overhead = document.getElementById("overhead").value;
+  const employees = document.getElementById("employees").value;
+  const projectSize = document.getElementById("projectSize").value;
+
+  document.getElementById("result").innerHTML = "Analyzing your business...";
 
   try {
+
     const response = await fetch("/api/analyse", {
       method: "POST",
       headers: {
@@ -73,7 +103,11 @@ async function analyse() {
         currency,
         currentRate,
         requiredRate,
-        hours
+        hours,
+        materialPercent,
+        overhead,
+        employees,
+        projectSize
       })
     });
 
@@ -83,8 +117,10 @@ async function analyse() {
       data.result || "No response from AI.";
 
   } catch (error) {
+
     document.getElementById("result").innerHTML =
       "Error connecting to server.";
+
   }
 }
 </script>
