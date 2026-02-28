@@ -34,110 +34,127 @@ export default async function handler(req, res) {
      PAGE 1 – COVER
   ========================== */
 
-  // Top color bar
-  doc.rect(0, 0, pageWidth, 120)
-     .fill("#111111");
+  doc.rect(0, 0, pageWidth, 120).fill("#111111");
 
   doc.fillColor("white")
-     .fontSize(28)
-     .text("CONTRACTOR PROFIT REPORT", 0, 50, {
-       align: "center"
-     });
-
-  doc.moveDown(6);
+     .fontSize(26)
+     .text("CONTRACTOR PROFIT REPORT", 0, 50, { align: "center" });
 
   doc.fillColor("#111111")
      .fontSize(16)
      .text("Executive Summary", 60, 180);
 
-  doc.moveDown();
-
-  doc.fontSize(13);
-  doc.text(
-    `Your business currently generates ${currency} ${currentRevenue.toLocaleString()} in annual revenue with a profit margin of ${profitMargin}%.`,
-    60,
-    220,
-    { width: 480 }
-  );
-
-  doc.moveDown();
+  doc.fontSize(13)
+     .text(
+       `Your business generates ${currency} ${currentRevenue.toLocaleString()} annually with a profit margin of ${profitMargin}%.`,
+       60,
+       220,
+       { width: 480 }
+     );
 
   doc.text(
-    `To reach your target revenue of ${currency} ${targetRevenue.toLocaleString()}, you need to close a gap of ${currency} ${incomeGap.toLocaleString()}.`,
-    { width: 480 }
-  );
+       `To reach ${currency} ${targetRevenue.toLocaleString()}, you must close a gap of ${currency} ${incomeGap.toLocaleString()}.`,
+       { width: 480 }
+     );
 
-  doc.moveDown(2);
-
-  // Highlight box
-  doc.roundedRect(60, 320, 480, 100, 8)
-     .fill("#f4f4f4");
+  doc.roundedRect(60, 320, 480, 90, 8).fill("#f4f4f4");
 
   doc.fillColor("#111111")
-     .fontSize(18)
-     .text("Income Gap", 80, 340);
+     .fontSize(14)
+     .text("INCOME GAP", 80, 340);
 
   doc.fontSize(26)
-     .fillColor("#000000")
-     .text(`${currency} ${incomeGap.toLocaleString()}`, 80, 365);
-
-  doc.fontSize(12)
-     .fillColor("gray")
-     .text("Additional revenue required to hit target", 80, 395);
+     .text(`${currency} ${incomeGap.toLocaleString()}`, 80, 360);
 
   doc.addPage();
 
   /* =========================
-     PAGE 2 – FINANCIAL DETAIL
+     PAGE 2 – PROFESSIONAL DASHBOARD
   ========================== */
 
-  doc.fontSize(22)
+  doc.fillColor("#111111")
+     .fontSize(22)
+     .text("Financial Dashboard", 60, 60);
+
+  /* ===== KPI BOXES ===== */
+
+  const boxWidth = 160;
+  const boxHeight = 80;
+  const startX = 60;
+  const startY = 110;
+  const gap = 20;
+
+  function kpiBox(x, y, title, value) {
+    doc.roundedRect(x, y, boxWidth, boxHeight, 6).fill("#f7f7f7");
+    doc.fillColor("#555")
+       .fontSize(10)
+       .text(title, x + 15, y + 15);
+    doc.fillColor("#000")
+       .fontSize(16)
+       .text(value, x + 15, y + 35);
+  }
+
+  kpiBox(startX, startY, "Net Profit", `${currency} ${netProfit.toLocaleString()}`);
+  kpiBox(startX + boxWidth + gap, startY, "Profit Margin", `${profitMargin}%`);
+  kpiBox(startX + (boxWidth + gap) * 2, startY, "Break-even", `${currency} ${breakEvenRevenue.toLocaleString()}`);
+
+  /* ===== REVENUE SECTION ===== */
+
+  doc.fillColor("#111111")
+     .fontSize(16)
+     .text("Revenue Performance", 60, 230);
+
+  doc.moveTo(60, 250)
+     .lineTo(pageWidth - 60, 250)
+     .strokeColor("#dddddd")
+     .stroke();
+
+  doc.fontSize(12)
+     .fillColor("#000")
+     .text(`Current Revenue:`, 60, 270)
+     .text(`${currency} ${currentRevenue.toLocaleString()}`, 400, 270);
+
+  doc.text(`Target Revenue:`, 60, 290)
+     .text(`${currency} ${targetRevenue.toLocaleString()}`, 400, 290);
+
+  /* ===== COST STRUCTURE ===== */
+
+  doc.fontSize(16)
      .fillColor("#111111")
-     .text("Financial Breakdown", 60, 60);
+     .text("Cost Structure", 60, 330);
 
-  doc.moveDown(2);
+  doc.moveTo(60, 350)
+     .lineTo(pageWidth - 60, 350)
+     .strokeColor("#dddddd")
+     .stroke();
 
-  // Revenue Section
-  doc.fontSize(16).text("Revenue Overview", 60);
-  doc.moveDown(0.5);
-  doc.fontSize(13);
-  doc.text(`Current Revenue: ${currency} ${currentRevenue.toLocaleString()}`, 60);
-  doc.text(`Target Revenue: ${currency} ${targetRevenue.toLocaleString()}`, 60);
+  doc.fontSize(12)
+     .fillColor("#000")
+     .text(`Material Cost:`, 60, 370)
+     .text(`${currency} ${materialCost.toLocaleString()}`, 400, 370);
 
-  doc.moveDown(1.5);
+  doc.text(`Annual Overhead:`, 60, 390)
+     .text(`${currency} ${overhead.toLocaleString()}`, 400, 390);
 
-  // Cost Section
-  doc.fontSize(16).text("Cost Structure", 60);
-  doc.moveDown(0.5);
-  doc.fontSize(13);
-  doc.text(`Material Cost: ${currency} ${materialCost.toLocaleString()}`, 60);
-  doc.text(`Annual Overhead: ${currency} ${overhead.toLocaleString()}`, 60);
+  /* ===== OPERATIONS ===== */
 
-  doc.moveDown(1.5);
+  doc.fontSize(16)
+     .fillColor("#111111")
+     .text("Operational Requirement", 60, 430);
 
-  // Profit Section
-  doc.fontSize(16).text("Profitability", 60);
-  doc.moveDown(0.5);
-  doc.fontSize(13);
-  doc.text(`Net Profit: ${currency} ${netProfit.toLocaleString()}`, 60);
-  doc.text(`Profit Margin: ${profitMargin}%`, 60);
-  doc.text(`Break-even Revenue: ${currency} ${breakEvenRevenue.toLocaleString()}`, 60);
+  doc.moveTo(60, 450)
+     .lineTo(pageWidth - 60, 450)
+     .strokeColor("#dddddd")
+     .stroke();
 
-  doc.moveDown(1.5);
-
-  // Operational
-  doc.fontSize(16).text("Operational Metrics", 60);
-  doc.moveDown(0.5);
-  doc.fontSize(13);
-  doc.text(`Projects Needed to Hit Target: ${projectsNeeded}`, 60);
-
-  doc.moveDown(3);
+  doc.fontSize(12)
+     .fillColor("#000")
+     .text(`Projects Needed to Reach Target:`, 60, 470)
+     .text(`${projectsNeeded}`, 400, 470);
 
   doc.fontSize(10)
      .fillColor("gray")
-     .text("Generated by Contractor Profit AI", 0, doc.page.height - 60, {
-       align: "center"
-     });
+     .text("Generated by Contractor Profit AI", 0, doc.page.height - 60, { align: "center" });
 
   doc.end();
 }
