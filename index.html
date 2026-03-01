@@ -1,48 +1,60 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Profit Advisor</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 600px;
-      margin: 40px auto;
-      padding: 20px;
-    }
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Profit Advisor</title>
 
-    h2 {
-      margin-bottom: 20px;
-    }
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-    input, select, button {
-      width: 100%;
-      padding: 12px;
-      margin-top: 10px;
-      font-size: 16px;
-      box-sizing: border-box;
-    }
+<style>
+body {
+  font-family: Arial, sans-serif;
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 20px;
+}
 
-    button {
-      background: black;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
+input, select, button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  font-size: 16px;
+  box-sizing: border-box;
+}
 
-    button.secondary {
-      background: #444;
-    }
+button {
+  background: black;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
 
-    #result {
-      margin-top: 30px;
-      white-space: normal;
-    }
+#result {
+  margin-top: 30px;
+}
 
-    hr {
-      margin: 30px 0;
-    }
-  </style>
+.card {
+  background: #f4f4f4;
+  padding: 20px;
+  margin-top: 20px;
+  border-radius: 8px;
+}
+
+.green { color: green; }
+.red { color: red; }
+
+.bar {
+  height: 14px;
+  background: #ddd;
+  border-radius: 7px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+}
+</style>
 </head>
 <body>
 
@@ -50,124 +62,98 @@
 
 <label>Currency</label>
 <select id="currency">
-  <option value="USD">USD</option>
-  <option value="EUR">EUR</option>
-  <option value="GBP">GBP</option>
-  <option value="AUD">AUD</option>
+<option value="$">$</option>
+<option value="€">€</option>
+<option value="£">£</option>
+<option value="A$">A$</option>
 </select>
 
-<label>Current Hourly Rate</label>
-<input id="currentRate" type="number">
+<label>Current Revenue</label>
+<input id="currentRevenue" type="number">
 
-<label>Target Hourly Rate</label>
-<input id="requiredRate" type="number">
+<label>Target Revenue</label>
+<input id="targetRevenue" type="number">
 
-<label>Billable Hours Per Year</label>
-<input id="hours" type="number">
+<label>Material Cost</label>
+<input id="materialCost" type="number">
 
-<hr>
+<label>Overhead</label>
+<input id="overhead" type="number">
 
-<h3>Business Details</h3>
+<label>Net Profit</label>
+<input id="netProfit" type="number">
 
-<label>Average Material Cost (% of revenue)</label>
-<input id="materialPercent" type="number" placeholder="e.g. 30">
+<label>Profit Margin (%)</label>
+<input id="profitMargin" type="number">
 
-<label>Estimated Annual Overhead</label>
-<input id="overhead" type="number" placeholder="e.g. 35000">
+<button onclick="generateReport()">Generate Report</button>
 
-<label>Number of Employees</label>
-<input id="employees" type="number">
-
-<label>Average Project Value</label>
-<input id="projectSize" type="number" placeholder="e.g. 12000">
-
-<button onclick="analyse()">Analyze My Business</button>
-
-<button class="secondary" onclick="downloadPDF()">
-  Download PDF Report
-</button>
+<button onclick="downloadPDF()">Download PDF</button>
 
 <div id="result"></div>
 
 <script>
 
-let latestReportData = null;
+function generateReport() {
 
-async function analyse() {
+  const currency = document.getElementById("currency").value;
+  const currentRevenue = Number(document.getElementById("currentRevenue").value);
+  const targetRevenue = Number(document.getElementById("targetRevenue").value);
+  const materialCost = Number(document.getElementById("materialCost").value);
+  const overhead = Number(document.getElementById("overhead").value);
+  const netProfit = Number(document.getElementById("netProfit").value);
+  const profitMargin = Number(document.getElementById("profitMargin").value);
 
-  const data = {
-    currency: document.getElementById("currency").value,
-    currentRate: document.getElementById("currentRate").value,
-    requiredRate: document.getElementById("requiredRate").value,
-    hours: document.getElementById("hours").value,
-    materialPercent: document.getElementById("materialPercent").value,
-    overhead: document.getElementById("overhead").value,
-    employees: document.getElementById("employees").value,
-    projectSize: document.getElementById("projectSize").value
-  };
-
-  document.getElementById("result").innerHTML = "Analyzing...";
-
-  const response = await fetch("/api/analyse", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data)
-  });
-
-  const result = await response.json();
-
-  document.getElementById("result").innerHTML = result.result;
-
-  // === CALCULATE SAME NUMBERS FOR PDF ===
-  const currentRevenue = data.currentRate * data.hours;
-  const targetRevenue = data.requiredRate * data.hours;
   const incomeGap = targetRevenue - currentRevenue;
-  const materialCost = currentRevenue * (data.materialPercent / 100);
-  const netProfit = currentRevenue - materialCost - data.overhead;
-  const profitMargin = currentRevenue > 0
-    ? ((netProfit / currentRevenue) * 100).toFixed(1)
-    : 0;
-  const breakEvenRevenue = data.materialPercent < 100
-    ? data.overhead / (1 - data.materialPercent / 100)
-    : 0;
-  const projectsNeeded = data.projectSize > 0
-    ? Math.ceil(targetRevenue / data.projectSize)
-    : 0;
 
-  latestReportData = {
-    currency: data.currency,
-    currentRevenue,
-    targetRevenue,
-    incomeGap,
-    materialCost,
-    overhead: data.overhead,
-    netProfit,
-    profitMargin,
-    breakEvenRevenue: Math.round(breakEvenRevenue),
-    projectsNeeded
-  };
+  const revenuePercent = targetRevenue > 0 ? (currentRevenue / targetRevenue) * 100 : 0;
+  const costPercent = currentRevenue > 0 ? ((materialCost + overhead) / currentRevenue) * 100 : 0;
+
+  document.getElementById("result").innerHTML = `
+    <div id="pdfContent">
+
+      <div class="card">
+        <h3>Financial Overview</h3>
+        <p><strong>Current Revenue:</strong> ${currency}${currentRevenue.toLocaleString()}</p>
+        <p><strong>Target Revenue:</strong> ${currency}${targetRevenue.toLocaleString()}</p>
+        <p><strong>Income Gap:</strong> 
+        <span class="${incomeGap > 0 ? 'red' : 'green'}">
+        ${currency}${incomeGap.toLocaleString()}
+        </span></p>
+      </div>
+
+      <div class="card">
+        <h3>Profit Metrics</h3>
+        <p><strong>Net Profit:</strong> <span class="green">${currency}${netProfit.toLocaleString()}</span></p>
+        <p><strong>Profit Margin:</strong> ${profitMargin}%</p>
+      </div>
+
+      <div class="card">
+        <h3>Revenue Progress</h3>
+        <div class="bar">
+          <div class="fill" style="width:${revenuePercent}%; background:green;"></div>
+        </div>
+
+        <h3 style="margin-top:20px;">Cost Structure</h3>
+        <div class="bar">
+          <div class="fill" style="width:${costPercent}%; background:red;"></div>
+        </div>
+      </div>
+
+    </div>
+  `;
 }
 
-async function downloadPDF() {
+function downloadPDF() {
 
-  if (!latestReportData) {
-    alert("Please run analysis first.");
-    return;
-  }
+  const element = document.getElementById("pdfContent");
 
-  const response = await fetch("/api/generate-pdf", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(latestReportData)
-  });
-
-  const blob = await response.blob();
-  const url = window.URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "Business-Profit-Analysis.pdf";
-  a.click();
+  html2pdf().from(element).set({
+    margin: 10,
+    filename: "Contractor-Profit-Report.pdf",
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  }).save();
 }
 
 </script>
